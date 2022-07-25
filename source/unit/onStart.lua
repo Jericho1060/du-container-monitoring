@@ -2,11 +2,12 @@
 	LUA PARAMETERS
 ]]
 fontSize = 20 --export: the size of the text for all the screen
+maxVolumeForHub = 0--export: the max volume from a hub (can't get it from the lua) if 0, the content volume will be displayed on the screen
 --[[
 	INIT
 ]]
 
-local version = '1.0.0'
+local version = '1.1.0'
 
 system.print("------------------------------------")
 system.print("DU-Container-Monitoring version " .. version)
@@ -22,13 +23,9 @@ local back=createLayer()
 local front=createLayer()
 
 font_size = ]] .. fontSize .. [[
-
-local mini=loadFont('Play',12)
 local small=loadFont('Play',14)
 local smallBold=loadFont('Play-Bold',18)
 local itemName=loadFont('Play-Bold',font_size)
-local medV=loadFont('Play-Bold', 25)
-local bigV=loadFont('Play-Bold', 30)
 local big=loadFont('Play',38)
 
 setBackgroundColor( 15/255,24/255,29/255)
@@ -64,24 +61,32 @@ setDefaultFillColor(storageBar,Shape_Text,110/255,166/255,181/255,1)
 setDefaultFillColor(storageBar,Shape_Box,0.075,0.125,0.156,1)
 setDefaultFillColor(storageBar,Shape_Line,1,1,1,1)
 
-local storageDark = createLayer()
-setDefaultFillColor(storageDark,Shape_Text,63/255,92/255,102/255,1)
-setDefaultFillColor(storageDark,Shape_Box,13/255,24/255,28/255,1)
-
 local colorLayer = createLayer()
+local percent_fill = 0
+local r = 110/255
+local g = 166/255
+local b = 181/255
+if data[1] > 0 then
+    percent_fill = data[2]*100/data[1]
+    if percent_fill > 100 then percent_fill = 100 end
+    r,g,b = getRGBGradient(percent_fill/100,177/255,42/255,42/255,249/255,212/255,123/255,34/255,177/255,76/255)
+end
+setDefaultFillColor(colorLayer,Shape_Box,r,g,b,1)
+setDefaultFillColor(colorLayer,Shape_Text,r,g,b,1)
+setDefaultTextAlign(colorLayer, AlignH_Center, AlignV_Middle)
 
 function renderProgressBar(percent)
-    local r,g,b = getRGBGradient(percent/100,177/255,42/255,42/255,249/255,212/255,123/255,34/255,177/255,76/255)
-    setNextFillColor(colorLayer, r, g, b, 1)
-    setNextTextAlign(colorLayer, AlignH_Center, AlignV_Middle)
-    addText(colorLayer, itemName, format_number(round(percent*100)/100) .."%", rx/2, 90)
-    local w = (rx-90)*(percent)/100
-    local x=44
-    local y=55
-    local h=25
-    addBox(storageBar,x,y,rx-88,h)
-    setNextFillColor(colorLayer, r, g, b, 1)
-    addBox(colorLayer,x+1,y+1,w,h-2)
+    if data[1] > 0 then
+        addText(colorLayer, itemName, format_number(round(percent*100)/100) .."%", rx/2, 90)
+        local w=(rx-90)*(percent)/100
+        local x=44
+        local y=55
+        local h=25
+        addBox(storageBar,x,y,rx-88,h)
+        addBox(colorLayer,x+1,y+1,w,h-2)
+    else
+        addText(colorLayer, itemName, format_number(round(data[2]*100)/100) .." L", rx/2, 80)
+    end
 end
 
 function renderResistanceBar(title, quantity, x, y, w, h, withTitle)
@@ -102,7 +107,6 @@ function renderResistanceBar(title, quantity, x, y, w, h, withTitle)
     setNextTextAlign(storageBar, AlignH_Left, AlignV_Middle)
     addText(storageBar, itemName, title, x+10, pos_y)
 
-    --setNextFillColor(colorLayer, r, g, b, 1)
     setNextTextAlign(storageBar, AlignH_Right, AlignV_Middle)
     addText(storageBar, itemName, format_number(quantity), w+30, pos_y)
 end
@@ -117,14 +121,13 @@ for i,container in ipairs(data[4]) do
     renderResistanceBar(container[2], container[3], 44, start_h, rx-88, h, i==1)
     start_h = start_h+h+5
 end
-renderProgressBar(data[2]*100/data[1])
-requestAnimationFrame(10)
+renderProgressBar(percent_fill)
+requestAnimationFrame(500)
 ]]
 
 screens = {}
 for slot_name, slot in pairs(unit) do
-    if
-    type(slot) == "table"
+    if type(slot) == "table"
             and type(slot.export) == "table"
             and slot.getClass
     then
@@ -137,6 +140,7 @@ for slot_name, slot in pairs(unit) do
 end
 if #screens == 0 then
     system.print("No Screen Detected")
+    unit.exit()
 else
     table.sort(screens, function(a,b) return a.slotname < b.slotname end)
     local plural = ""
@@ -145,9 +149,56 @@ else
 end
 if container == nil then
     system.print('No Container or Hub dectected')
+    unit.exit()
 else
     system.print('Storage connected')
 end
+
 screen_data={0,0,0,{}}
-request_time = container.updateContent()
-unit.setTimer("acquireStorage", 1)
+request_time = 0
+
+--[[
+    DU-Nested-Coroutines by Jericho
+    Permit to easier avoid CPU Load Errors
+    Source available here: https://github.com/Jericho1060/du-nested-coroutines
+]]--
+
+coroutinesTable  = {}
+--all functions here will become a coroutine
+MyCoroutines = {
+    function()
+        request_time = math.ceil(container.updateContent())
+        local max_vol = container.getMaxVolume()
+        if max_vol == 0 then
+            max_vol = maxVolumeForHub
+        end
+        screen_data[1] = max_vol
+        screen_data[2] = container.getItemsVolume()
+        screen_data[3] = request_time
+        for _,s in pairs(screens) do
+            s.setScriptInput(json.encode(screen_data))
+        end
+    end
+}
+
+function initCoroutines()
+    for _,f in pairs(MyCoroutines) do
+        local co = coroutine.create(f)
+        table.insert(coroutinesTable, co)
+    end
+end
+
+initCoroutines()
+
+runCoroutines = function()
+    for i,co in ipairs(coroutinesTable) do
+        if coroutine.status(co) == "dead" then
+            coroutinesTable[i] = coroutine.create(MyCoroutines[i])
+        end
+        if coroutine.status(co) == "suspended" then
+            assert(coroutine.resume(co))
+        end
+    end
+end
+
+MainCoroutine = coroutine.create(runCoroutines)
