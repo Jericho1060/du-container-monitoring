@@ -2,12 +2,13 @@
 	LUA PARAMETERS
 ]]
 fontSize = 20 --export: the size of the text for all the screen
-maxVolumeForHub = 0--export: the max volume from a hub (can't get it from the lua) if 0, the content volume will be displayed on the screen
+maxVolumeForHub = 0 --export: the max volume from a hub (can't get it from the lua) if 0, the content volume will be displayed on the screen
+rotateScreen = true --export: rotate the screen by 90deg
 --[[
 	INIT
 ]]
 
-local version = '1.1.0'
+local version = '1.1.0-Merl1'
 
 system.print("------------------------------------")
 system.print("DU-Container-Monitoring version " .. version)
@@ -16,11 +17,26 @@ system.print("------------------------------------")
 local renderScript = [[
 local json = require('dkjson')
 local data = json.decode(getInput()) or {}
+local rotateScreen = ]] .. tostring(rotateScreen) .. [[
 
-local rx,ry = getResolution()
+local rx,ry
+if rotateScreen then
+	ry,rx = getResolution()
+else
+	ry,rx = getResolution()
+end
 
 local back=createLayer()
+if rotateScreen then
+	setLayerTranslation(back, ry-35,0)
+	setLayerRotation(back, math.rad(90))
+end
+
 local front=createLayer()
+if rotateScreen then
+	setLayerTranslation(front, ry-35,0)
+	setLayerRotation(front, math.rad(90))
+end
 
 font_size = ]] .. fontSize .. [[
 local small=loadFont('Play',14)
@@ -57,11 +73,19 @@ function renderHeader(title)
 end
 
 local storageBar = createLayer()
+if rotateScreen then
+	setLayerTranslation(storageBar, ry-35,0)
+	setLayerRotation(storageBar, math.rad(90))
+end
 setDefaultFillColor(storageBar,Shape_Text,110/255,166/255,181/255,1)
 setDefaultFillColor(storageBar,Shape_Box,0.075,0.125,0.156,1)
 setDefaultFillColor(storageBar,Shape_Line,1,1,1,1)
 
 local colorLayer = createLayer()
+if rotateScreen then
+	setLayerTranslation(colorLayer, ry-35,0)
+	setLayerRotation(colorLayer, math.rad(90))
+end
 local percent_fill = 0
 local r = 110/255
 local g = 166/255
@@ -106,7 +130,7 @@ function renderResistanceBar(title, quantity, x, y, w, h, withTitle)
 
     setNextTextAlign(storageBar, AlignH_Left, AlignV_Middle)
     addText(storageBar, itemName, title, x+10, pos_y)
-
+    
     setNextTextAlign(storageBar, AlignH_Right, AlignV_Middle)
     addText(storageBar, itemName, format_number(quantity), w+30, pos_y)
 end
