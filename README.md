@@ -1,9 +1,12 @@
 # du-container-monitoring
  A script for Dual Universe that is displaying the content of a single container on up to 9 screens
 
-![Img001](https://github.com/Jericho1060/du-container-monitoring/blob/main/du-container-monitoring-1.png?raw=true)
-
 ![Img002](https://github.com/Jericho1060/du-container-monitoring/blob/main/du-container-monitoring-2.png?raw=true)
+
+| Horizontal View | Vertical View                                                                                                      |
+|-----------------|--------------------------------------------------------------------------------------------------------------------|
+| ![Img001](https://github.com/Jericho1060/du-container-monitoring/blob/main/du-container-monitoring-1.png?raw=true) | ![Img003](https://github.com/Jericho1060/du-container-monitoring/blob/main/du-container-monitoring-3.png?raw=true) |
+
 
 # Edit the code
 
