@@ -2,12 +2,14 @@
 	LUA PARAMETERS
 ]]
 fontSize = 20 --export: the size of the text for all the screen
-maxVolumeForHub = 0--export: the max volume from a hub (can't get it from the lua) if 0, the content volume will be displayed on the screen
+maxVolumeForHub = 0 --export: the max volume from a hub (can't get it from the lua) if 0, the content volume will be displayed on the screen
+--vertical mode code based on a suggestion by Merl
+verticalMode = false --export: rotate the screen 90deg (bottom on right)
 --[[
 	INIT
 ]]
 
-local version = '1.1.0'
+local version = '1.3.0'
 
 system.print("------------------------------------")
 system.print("DU-Container-Monitoring version " .. version)
@@ -16,8 +18,29 @@ system.print("------------------------------------")
 local renderScript = [[
 local json = require('dkjson')
 local data = json.decode(getInput()) or {}
+local vmode = ]] .. tostring(verticalMode) .. [[
 
-local rx,ry = getResolution()
+if items == nil or data[1] then items = {} end
+local images = {}
+
+if data[5] ~= nil then
+    items[data[5][1] ] = data[5]
+    setOutput(data[5][1])
+    data[5] = nil
+end
+
+for _,item in ipairs(items) do
+    if images[item[2] ] == nil then
+        images[item[2] ] = loadImage(item[5])
+    end
+end
+
+local rx,ry
+if vmode then
+	ry,rx = getResolution()
+else
+	rx,ry = getResolution()
+end
 
 local back=createLayer()
 local front=createLayer()
@@ -52,7 +75,7 @@ function renderHeader(title)
     end
     addLine( back,0,h+12,rx,h+12)
     addBox(front,0,12,rx,h)
-    addText(front,small,"Next query possible in " .. round(data[3]) .. ' seconds',rx-250,35)
+    addText(front,small,"Next query possible in " .. round(data[4]) .. ' seconds',rx-250,35)
     addText(front,smallBold,title,44,35)
 end
 
@@ -62,12 +85,26 @@ setDefaultFillColor(storageBar,Shape_Box,0.075,0.125,0.156,1)
 setDefaultFillColor(storageBar,Shape_Line,1,1,1,1)
 
 local colorLayer = createLayer()
+local imagesLayer = createLayer()
+if vmode then
+    local from_top = 10
+    setLayerTranslation(back, ry-from_top,0)
+    setLayerRotation(back, math.rad(90))
+    setLayerTranslation(front, ry-from_top,0)
+    setLayerRotation(front, math.rad(90))
+    setLayerTranslation(storageBar, ry-from_top,0)
+    setLayerRotation(storageBar, math.rad(90))
+    setLayerTranslation(colorLayer, ry-from_top,0)
+    setLayerRotation(colorLayer, math.rad(90))
+    setLayerTranslation(imagesLayer, ry-from_top,0)
+    setLayerRotation(imagesLayer, math.rad(90))
+end
 local percent_fill = 0
 local r = 110/255
 local g = 166/255
 local b = 181/255
-if data[1] > 0 then
-    percent_fill = data[2]*100/data[1]
+if data[2] > 0 then
+    percent_fill = data[3]*100/data[2]
     if percent_fill > 100 then percent_fill = 100 end
     r,g,b = getRGBGradient(percent_fill/100,177/255,42/255,42/255,249/255,212/255,123/255,34/255,177/255,76/255)
 end
@@ -76,7 +113,7 @@ setDefaultFillColor(colorLayer,Shape_Text,r,g,b,1)
 setDefaultTextAlign(colorLayer, AlignH_Center, AlignV_Middle)
 
 function renderProgressBar(percent)
-    if data[1] > 0 then
+    if data[2] > 0 then
         addText(colorLayer, itemName, format_number(round(percent*100)/100) .."%", rx/2, 90)
         local w=(rx-90)*(percent)/100
         local x=44
@@ -85,11 +122,11 @@ function renderProgressBar(percent)
         addBox(storageBar,x,y,rx-88,h)
         addBox(colorLayer,x+1,y+1,w,h-2)
     else
-        addText(colorLayer, itemName, format_number(round(data[2]*100)/100) .." L", rx/2, 80)
+        addText(colorLayer, itemName, format_number(round(data[3]*100)/100) .." L", rx/2, 80)
     end
 end
 
-function renderResistanceBar(title, quantity, x, y, w, h, withTitle)
+function renderResistanceBar(item_id, title, quantity, x, y, w, h, withTitle)
 
     local quantity_x_pos = font_size * 6.7
     local percent_x_pos = font_size * 2
@@ -98,14 +135,17 @@ function renderResistanceBar(title, quantity, x, y, w, h, withTitle)
 
     if withTitle then
         addText(storageBar, small, "ITEMS", x, y-5)
-        setNextTextAlign(storageBar, AlignH_Right, AlignV_Middle)
+        setNextTextAlign(storageBar, AlignH_Right, AlignV_Bottom)
         addText(storageBar, small, "QUANTITY", x+w-15, y-5)
+    end
+    if item_id and tonumber(item_id) > 0 and images[item_id] then
+        addImage(imagesLayer, images[item_id], x+10, y+font_size*.1, font_size*1.3, font_size*1.2)
     end
 
     local pos_y = y+(h/2)-2
 
     setNextTextAlign(storageBar, AlignH_Left, AlignV_Middle)
-    addText(storageBar, itemName, title, x+10, pos_y)
+    addText(storageBar, itemName, title, x+20+font_size, pos_y)
 
     setNextTextAlign(storageBar, AlignH_Right, AlignV_Middle)
     addText(storageBar, itemName, format_number(quantity), w+30, pos_y)
@@ -117,15 +157,19 @@ start_h = 100
 
 
 local h = font_size + font_size / 2
-for i,container in ipairs(data[4]) do
-    renderResistanceBar(container[2], container[3], 44, start_h, rx-88, h, i==1)
+for i,item in ipairs(items) do
+    if i <= #items then
+        renderResistanceBar(item[2], item[3], item[4], 44, start_h, rx-88, h, i==1)
+    end
     start_h = start_h+h+5
 end
+
 renderProgressBar(percent_fill)
-requestAnimationFrame(500)
+requestAnimationFrame(1)
 ]]
 
 screens = {}
+databank = nil
 for slot_name, slot in pairs(unit) do
     if type(slot) == "table"
             and type(slot.export) == "table"
@@ -135,6 +179,8 @@ for slot_name, slot in pairs(unit) do
             slot.slotname = slot_name
             table.insert(screens,slot)
             slot.setRenderScript(renderScript)
+        elseif slot.getClass():lower() == 'databankunit' then
+            databank = slot
         end
     end
 end
@@ -156,6 +202,8 @@ end
 
 screen_data={0,0,0,{}}
 request_time = 0
+items = {}
+update_screen = false
 
 --[[
     DU-Nested-Coroutines by Jericho
@@ -172,13 +220,31 @@ MyCoroutines = {
         if max_vol == 0 then
             max_vol = maxVolumeForHub
         end
-        screen_data[1] = max_vol
-        screen_data[2] = container.getItemsVolume()
-        screen_data[3] = request_time
-        for _,s in pairs(screens) do
-            s.setScriptInput(json.encode(screen_data))
+        local screen_data = {update_screen, max_vol, container.getItemsVolume(), request_time, nil}
+        if update_screen then
+            for i,item in ipairs(items) do
+                screen_data[5] = {
+                    i,
+                    item[1],
+                    item[2],
+                    item[3],
+                    item[4]
+                }
+                for _,s in pairs(screens) do
+                    s.setScriptInput(json.encode(screen_data))
+                    while tonumber(s.getScriptOutput()) ~= i do
+                        coroutine.yield(coroutinesTable[1])
+                    end
+                end
+                update_screen = false
+                screen_data[1] = false
+            end
+        else
+            for _,s in pairs(screens) do
+                s.setScriptInput(json.encode(screen_data))
+            end
         end
-    end
+    end,
 }
 
 function initCoroutines()

@@ -36,7 +36,8 @@ Copy the content of the file config.json then right clik on the board, chose adv
 By rightclicking on the board, advanced, edit lua parameters, you can customize these options:
 
 - `fontSize`: the size of the text for all the screen
-- `maxVolumeForHub` the max volume from a hub (can't get it from the lua) if 0, the content volume will be displayed on the screen
+- `maxVolumeForHub`: the max volume from a hub (can't get it from the lua) if 0, the content volume will be displayed on the screen
+- `verticalMode`: rotate the screen 90deg (bottom on right)
 
 # Support or donation
 
