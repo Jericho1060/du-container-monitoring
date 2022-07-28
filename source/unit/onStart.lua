@@ -9,7 +9,7 @@ verticalMode = false --export: rotate the screen 90deg (bottom on right)
 	INIT
 ]]
 
-local version = '1.3.0'
+local version = '1.3.1'
 
 system.print("------------------------------------")
 system.print("DU-Container-Monitoring version " .. version)
@@ -28,9 +28,10 @@ if data[5] ~= nil then
     setOutput(data[5][1])
     data[5] = nil
 end
-
+local loadedImages = 0
 for _,item in ipairs(items) do
-    if images[item[2] ] == nil then
+    if images[item[2] ] == nil and loadedImages <= 15 then
+        loadedImages = loadedImages + 1
         images[item[2] ] = loadImage(item[5])
     end
 end
@@ -126,7 +127,7 @@ function renderProgressBar(percent)
     end
 end
 
-function renderResistanceBar(item_id, title, quantity, x, y, w, h, withTitle)
+function renderResistanceBar(item_id, title, quantity, x, y, w, h, withTitle, withIcon)
 
     local quantity_x_pos = font_size * 6.7
     local percent_x_pos = font_size * 2
@@ -138,7 +139,7 @@ function renderResistanceBar(item_id, title, quantity, x, y, w, h, withTitle)
         setNextTextAlign(storageBar, AlignH_Right, AlignV_Bottom)
         addText(storageBar, small, "QUANTITY", x+w-15, y-5)
     end
-    if item_id and tonumber(item_id) > 0 and images[item_id] then
+    if item_id and tonumber(item_id) > 0 and images[item_id] and withIcon then
         addImage(imagesLayer, images[item_id], x+10, y+font_size*.1, font_size*1.3, font_size*1.2)
     end
 
@@ -158,14 +159,12 @@ start_h = 100
 
 local h = font_size + font_size / 2
 for i,item in ipairs(items) do
-    if i <= #items then
-        renderResistanceBar(item[2], item[3], item[4], 44, start_h, rx-88, h, i==1)
-    end
+    renderResistanceBar(item[2], item[3], item[4], 44, start_h, rx-88, h, i==1, i<=16)
     start_h = start_h+h+5
 end
 
 renderProgressBar(percent_fill)
-requestAnimationFrame(1)
+requestAnimationFrame(100)
 ]]
 
 screens = {}
