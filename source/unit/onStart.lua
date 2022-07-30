@@ -9,7 +9,7 @@ verticalMode = false --export: rotate the screen 90deg (bottom on right)
 	INIT
 ]]
 
-local version = '1.3.1'
+local version = '1.4.0'
 
 system.print("------------------------------------")
 system.print("DU-Container-Monitoring version " .. version)
@@ -68,17 +68,7 @@ function round(a,b)if b then return utils.round(a/b)*b end;return a>=0 and math.
 
 function getRGBGradient(a,b,c,d,e,f,g,h,i,j)a=-1*math.cos(a*math.pi)/2+0.5;local k=0;local l=0;local m=0;if a>=.5 then a=(a-0.5)*2;k=e-a*(e-h)l=f-a*(f-i)m=g-a*(g-j)else a=a*2;k=b-a*(b-e)l=c-a*(c-f)m=d-a*(d-g)end;return k,l,m end
 
-function renderHeader(title)
-    local h_factor = 12
-    local h = 35
-    if subtitle ~= nil and subtitle ~= "" and subtitle ~= "-" then
-        h = 50
-    end
-    addLine( back,0,h+12,rx,h+12)
-    addBox(front,0,12,rx,h)
-    addText(front,small,"Next query possible in " .. round(data[4]) .. ' seconds',rx-250,35)
-    addText(front,smallBold,title,44,35)
-end
+
 
 local storageBar = createLayer()
 setDefaultFillColor(storageBar,Shape_Text,110/255,166/255,181/255,1)
@@ -113,31 +103,42 @@ setDefaultFillColor(colorLayer,Shape_Box,r,g,b,1)
 setDefaultFillColor(colorLayer,Shape_Text,r,g,b,1)
 setDefaultTextAlign(colorLayer, AlignH_Center, AlignV_Middle)
 
+local from_side = rx*0.05
+function renderHeader(title)
+    local h = 35
+    addLine(back,0,h+12,rx,h+12)
+    addBox(front,0,12,rx,h)
+    addText(front,smallBold,title,from_side,h)
+end
+function renderFooter()
+    local h = 35
+    local y=ry-h-25
+    addLine(back,0,y+h+12,rx,y+h+12)
+    addBox(front,0,y+12,rx,h)
+    setNextTextAlign(front, AlignH_Right, AlignV_Bottom)
+    addText(front,small,"Next query possible in " .. round(data[4]) .. ' seconds',rx-from_side,y+h+2)
+end
 function renderProgressBar(percent)
     if data[2] > 0 then
         addText(colorLayer, itemName, format_number(round(percent*100)/100) .."%", rx/2, 90)
-        local w=(rx-90)*(percent)/100
-        local x=44
+        local w=(rx-2-from_side*2)*(percent)/100
+        local x=from_side
         local y=55
         local h=25
-        addBox(storageBar,x,y,rx-88,h)
+        addBox(storageBar,x,y,rx-from_side*2,h)
         addBox(colorLayer,x+1,y+1,w,h-2)
     else
         addText(colorLayer, itemName, format_number(round(data[3]*100)/100) .." L", rx/2, 80)
     end
 end
-
 function renderResistanceBar(item_id, title, quantity, x, y, w, h, withTitle, withIcon)
-
     local quantity_x_pos = font_size * 6.7
     local percent_x_pos = font_size * 2
-
     addBox(storageBar,x,y,w,h)
-
     if withTitle then
         addText(storageBar, small, "ITEMS", x, y-5)
         setNextTextAlign(storageBar, AlignH_Right, AlignV_Bottom)
-        addText(storageBar, small, "QUANTITY", x+w-15, y-5)
+        addText(storageBar, small, "QUANTITY", rx-x, y-5)
     end
     if item_id and tonumber(item_id) > 0 and images[item_id] and withIcon then
         addImage(imagesLayer, images[item_id], x+10, y+font_size*.1, font_size*1.3, font_size*1.2)
@@ -149,18 +150,24 @@ function renderResistanceBar(item_id, title, quantity, x, y, w, h, withTitle, wi
     addText(storageBar, itemName, title, x+20+font_size, pos_y)
 
     setNextTextAlign(storageBar, AlignH_Right, AlignV_Middle)
-    addText(storageBar, itemName, format_number(quantity), w+30, pos_y)
+    addText(storageBar, itemName, format_number(quantity), rx-from_side-10, pos_y)
 end
 
 renderHeader('Container Monitoring v]] .. version .. [[')
+renderFooter()
 
 start_h = 100
 
 
 local h = font_size + font_size / 2
 for i,item in ipairs(items) do
-    renderResistanceBar(item[2], item[3], item[4], 44, start_h, rx-88, h, i==1, i<=16)
+    renderResistanceBar(item[2], item[3], item[4], from_side, start_h, rx-from_side*2, h, i==1, i<=16)
     start_h = start_h+h+5
+    if start_h >= ry-100 then
+        setNextTextAlign(storageBar, AlignH_Center, AlignV_Middle)
+        addText(storageBar, itemName, 'too many items, scroll will be added soon', rx/2, ry-75)
+        break
+    end
 end
 
 renderProgressBar(percent_fill)
@@ -174,7 +181,10 @@ for slot_name, slot in pairs(unit) do
             and type(slot.export) == "table"
             and slot.getClass
     then
-        if slot.getClass():lower() == 'screenunit' then
+        if
+            slot.getClass():lower() == 'screenunit'
+            or slot.getClass():lower() == 'screensignunit'
+        then
             slot.slotname = slot_name
             table.insert(screens,slot)
             slot.setRenderScript(renderScript)
