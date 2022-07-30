@@ -40,7 +40,8 @@ By rightclicking on the board, advanced, edit lua parameters, you can customize 
 
 - `fontSize`: the size of the text for all the screen
 - `maxVolumeForHub`: the max volume from a hub (can't get it from the lua) if 0, the content volume will be displayed on the screen
-- `verticalMode`: rotate the screen 90deg (bottom on right)
+- `verticalMode`: rotate the screen 90deg
+- `verticalModeBottomSide`: when vertical mode is enabled, on which side the bottom of the screen is positioned (`left` or `right`)
 
 # Support or donation
 

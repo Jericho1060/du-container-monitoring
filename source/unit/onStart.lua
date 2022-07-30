@@ -3,13 +3,13 @@
 ]]
 fontSize = 20 --export: the size of the text for all the screen
 maxVolumeForHub = 0 --export: the max volume from a hub (can't get it from the lua) if 0, the content volume will be displayed on the screen
---vertical mode code based on a suggestion by Merl
-verticalMode = false --export: rotate the screen 90deg (bottom on right)
+verticalMode = false --export: rotate the screen 90deg
+verticalModeBottomSide = "right" --export: when vertical mode is enabled, on which side the bottom of the screen is positioned ("left" or "right")
 --[[
 	INIT
 ]]
 
-local version = '1.4.0'
+local version = '1.5.0'
 
 system.print("------------------------------------")
 system.print("DU-Container-Monitoring version " .. version)
@@ -20,6 +20,7 @@ local json = require('dkjson')
 local data = json.decode(getInput()) or {}
 local vmode = ]] .. tostring(verticalMode) .. [[
 
+local vmode_side = "]] .. verticalModeBottomSide .. [["
 if items == nil or data[1] then items = {} end
 local images = {}
 
@@ -47,6 +48,7 @@ local back=createLayer()
 local front=createLayer()
 
 font_size = ]] .. fontSize .. [[
+
 local small=loadFont('Play',14)
 local smallBold=loadFont('Play-Bold',18)
 local itemName=loadFont('Play-Bold',font_size)
@@ -77,18 +79,26 @@ setDefaultFillColor(storageBar,Shape_Line,1,1,1,1)
 
 local colorLayer = createLayer()
 local imagesLayer = createLayer()
+
 if vmode then
-    local from_top = 10
-    setLayerTranslation(back, ry-from_top,0)
-    setLayerRotation(back, math.rad(90))
-    setLayerTranslation(front, ry-from_top,0)
-    setLayerRotation(front, math.rad(90))
-    setLayerTranslation(storageBar, ry-from_top,0)
-    setLayerRotation(storageBar, math.rad(90))
-    setLayerTranslation(colorLayer, ry-from_top,0)
-    setLayerRotation(colorLayer, math.rad(90))
-    setLayerTranslation(imagesLayer, ry-from_top,0)
-    setLayerRotation(imagesLayer, math.rad(90))
+    local r = 90
+    local tx = ry
+    local ty = 0
+    if vmode_side == "left" then
+        r = r + 180
+        tx = 0
+        ty = rx
+    end
+    setLayerTranslation(back, tx,ty)
+    setLayerRotation(back, math.rad(r))
+    setLayerTranslation(front, tx, ty)
+    setLayerRotation(front, math.rad(r))
+    setLayerTranslation(storageBar, tx, ty)
+    setLayerRotation(storageBar, math.rad(r))
+    setLayerTranslation(colorLayer, tx, ty)
+    setLayerRotation(colorLayer, math.rad(r))
+    setLayerTranslation(imagesLayer, tx, ty)
+    setLayerRotation(imagesLayer, math.rad(r))
 end
 local percent_fill = 0
 local r = 110/255
@@ -154,6 +164,7 @@ function renderResistanceBar(item_id, title, quantity, x, y, w, h, withTitle, wi
 end
 
 renderHeader('Container Monitoring v]] .. version .. [[')
+
 renderFooter()
 
 start_h = 100
