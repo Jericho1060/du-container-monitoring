@@ -9,7 +9,7 @@ verticalModeBottomSide = "right" --export: when vertical mode is enabled, on whi
 	INIT
 ]]
 
-local version = '1.6.2'
+local version = '1.7.0'
 
 system.print("------------------------------------")
 system.print("DU-Container-Monitoring version " .. version)
@@ -23,6 +23,8 @@ local vmode = ]] .. tostring(verticalMode) .. [[
 local vmode_side = "]] .. verticalModeBottomSide .. [["
 if items == nil or data[1] then items = {} end
 if page == nil or data[1] then page = 1 end
+if sorting == nil or data[1] then sorting = 0 end
+
 local images = {}
 
 if data[5] ~= nil then
@@ -31,11 +33,16 @@ if data[5] ~= nil then
     data[5] = nil
 end
 
-local rx,ry
+local rx,ry = getResolution()
+local cx, cy = getCursor()
 if vmode then
-	ry,rx = getResolution()
-else
-	rx,ry = getResolution()
+    ry,rx = getResolution()
+    cy, cx = getCursor()
+    cx = rx - cx
+    if vmode_side == "right" then
+        cy = ry - cy
+        cx = rx - cx
+    end
 end
 
 local back=createLayer()
@@ -63,8 +70,6 @@ function format_number(a)local b=a;while true do b,k=string.gsub(b,"^(-?%d+)(%d%
 function round(a,b)if b then return utils.round(a/b)*b end;return a>=0 and math.floor(a+0.5)or math.ceil(a-0.5)end
 
 function getRGBGradient(a,b,c,d,e,f,g,h,i,j)a=-1*math.cos(a*math.pi)/2+0.5;local k=0;local l=0;local m=0;if a>=.5 then a=(a-0.5)*2;k=e-a*(e-h)l=f-a*(f-i)m=g-a*(g-j)else a=a*2;k=b-a*(b-e)l=c-a*(c-f)m=d-a*(d-g)end;return k,l,m end
-
-
 
 local storageBar = createLayer()
 setDefaultFillColor(storageBar,Shape_Text,110/255,166/255,181/255,1)
@@ -146,9 +151,54 @@ function renderResistanceBar(item_id, title, quantity, x, y, w, h, withTitle, wi
     local percent_x_pos = font_size * 2
     addBox(storageBar,x,y,w,h)
     if withTitle then
-        addText(storageBar, small, "ITEMS", x, y-5)
-        setNextTextAlign(storageBar, AlignH_Right, AlignV_Bottom)
-        addText(storageBar, small, "QUANTITY", rx-x, y-5)
+        local title1_text = 'ITEMS'
+        local title1_layer = storageBar
+        local title1_width = 50
+        if sorting == 1 then
+            title1_text = title1_text .. ' - ASC'
+            title1_layer = buttonHover
+            title1_width = 100
+        elseif sorting == 2 then
+            title1_text = title1_text .. ' - DESC'
+            title1_layer = buttonHover
+            title1_width = 100
+        end
+        if cx >= (x-5) and cx <= (x+title1_width) and cy >= (y-20) and cy <= y then
+            title1_layer = buttonHover
+            if getCursorPressed() then
+                if sorting == 0 or sorting > 2 then sorting = 1
+                elseif sorting == 1 then sorting = 2
+                elseif sorting == 2 then sorting = 0
+                end
+            end
+        end
+        addBox(title1_layer, x-5, y-20, title1_width, 20)
+        addText(title1_layer, small, title1_text, x, y-5)
+
+        local title2_text = 'QUANTITY'
+        local title2_layer = storageBar
+        local title2_width = 75
+        if sorting == 3 then
+            title2_text = title2_text .. ' - ASC'
+            title2_layer = buttonHover
+            title2_width = 120
+        elseif sorting == 4 then
+            title2_text = title2_text .. ' - DESC'
+            title2_layer = buttonHover
+            title2_width = 120
+        end
+        if cx >= (rx-x-title2_width) and cx <= (rx-x+5) and cy >= (y-20) and cy <= y then
+            title2_layer = buttonHover
+            if getCursorPressed() then
+                if sorting <= 2 then sorting = 3
+                elseif sorting == 3 then sorting = 4
+                elseif sorting == 4 then sorting = 0
+                end
+            end
+        end
+        addBox(title2_layer, rx-x-title2_width, y-20, title2_width+5, 20)
+        setNextTextAlign(title2_layer, AlignH_Right, AlignV_Bottom)
+        addText(title2_layer, small, title2_text, rx-x, y-5)
     end
     if item_id and tonumber(item_id) > 0 and images[item_id] and withIcon then
         addImage(imagesLayer, images[item_id], x+10, y+font_size*.1, font_size*1.3, font_size*1.2)
@@ -175,9 +225,33 @@ local max_pages = math.ceil(#items/byPage)
 local end_index = page * byPage
 local start_index = end_index - byPage + 1
 
+local sorted_items = {}
+for i,v in pairs(items) do
+    table.insert(sorted_items, v)
+end
+
+if sorting == 1 then table.sort(sorted_items, function(a, b) return a[3] < b[3] end)
+elseif sorting == 2 then table.sort(sorted_items, function(a, b) return a[3] > b[3] end)
+elseif sorting == 3 then table.sort(sorted_items, function(a, b) return a[4] < b[4] end)
+elseif sorting == 4 then table.sort(sorted_items, function(a, b) return a[4] > b[4] end)
+end
+--if sorting > 0 then
+--    table.sort(sorted_items, function(a, b)
+--        if sorting == 1 then
+--            return a[3]:lower() < b[3]:lower()
+--        elseif soting == 2 then
+--            return a[3]:lower() > b[3]:lower()
+--        elseif soting == 3 then
+--            return tonumber(a[4]) < tonumber(b[4])
+--        elseif soting == 4 then
+--            return tonumber(a[4]) > tonumber(b[4])
+--        end
+--    end)
+--end
+
 local item_to_display = {}
 for index = start_index, end_index do
-    table.insert(item_to_display, items[index])
+    table.insert(item_to_display, sorted_items[index])
 end
 
 local loadedImages = 0
@@ -202,15 +276,6 @@ if #items > byPage then
         paginationText = paginationText .. " (from " .. start_index .. " to " .. end_index .. " on " .. #items .. ")"
     end
     addText(storageBar, itemName, paginationText , rx/2, ry-70)
-    local cx, cy = getCursor()
-    if vmode then
-        cy, cx = getCursor()
-        cx = rx - cx
-        if vmode_side == "right" then
-            cy = ry - cy
-            cx = rx - cx
-        end
-    end
     if page > 1 then
         local b1_layer = storageBar
         if cx >= from_side and cx <= (from_side+h) and cy >= (ry-85) and cy <= (ry-85+h) then
