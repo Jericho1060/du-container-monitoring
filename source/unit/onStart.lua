@@ -5,15 +5,23 @@ fontSize = 20 --export: the size of the text for all the screen
 maxVolumeForHub = 0 --export: the max volume from a hub (can't get it from the lua) if 0, the content volume will be displayed on the screen
 verticalMode = false --export: rotate the screen 90deg
 verticalModeBottomSide = "right" --export: when vertical mode is enabled, on which side the bottom of the screen is positioned ("left" or "right")
+defaultSorting = "none" --export: the default sorting of items on the screen: "none": like in the container, "items-asc": ascending sorting on the name, "items-desc": descending sorting on the name, "quantity-asc": ascending on the quantity, "quantity-desc": descending on the quantity
 --[[
 	INIT
 ]]
 
-local version = '1.7.1'
+local version = '1.7.2'
 
 system.print("------------------------------------")
 system.print("DU-Container-Monitoring version " .. version)
 system.print("------------------------------------")
+
+local sorting=0
+if defaultSorting=="items-asc" then sorting = 1
+elseif defaultSorting=="items-desc" then sorting = 2
+elseif defaultSorting=="quantity-asc" then sorting = 3
+elseif defaultSorting=="quantity-desc" then sorting = 4
+end
 
 local renderScript = [[
 local json = require('dkjson')
@@ -23,7 +31,7 @@ local vmode = ]] .. tostring(verticalMode) .. [[
 local vmode_side = "]] .. verticalModeBottomSide .. [["
 if items == nil or data[1] then items = {} end
 if page == nil or data[1] then page = 1 end
-if sorting == nil or data[1] then sorting = 0 end
+if sorting == nil or data[1] then sorting = ]] .. sorting .. [[ end
 
 local images = {}
 

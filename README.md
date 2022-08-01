@@ -42,6 +42,11 @@ By rightclicking on the board, advanced, edit lua parameters, you can customize 
 - `maxVolumeForHub`: the max volume from a hub (can't get it from the lua) if 0, the content volume will be displayed on the screen
 - `verticalMode`: rotate the screen 90deg
 - `verticalModeBottomSide`: when vertical mode is enabled, on which side the bottom of the screen is positioned (`left` or `right`)
+- `defaultSorting`: The default sorting of items on the screen. Valid options are:
+    - `none`: like in the container, 
+    - `items-asc`: ascending sorting on the name,
+    - `items-desc`: descending sorting on the name,
+    - `quantity-asc`: ascending on the quantity, "quantity-desc": descending on the quantity
 
 # Support or donation
 
