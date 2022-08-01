@@ -9,7 +9,7 @@ verticalModeBottomSide = "right" --export: when vertical mode is enabled, on whi
 	INIT
 ]]
 
-local version = '1.5.0'
+local version = '1.6.0'
 
 system.print("------------------------------------")
 system.print("DU-Container-Monitoring version " .. version)
@@ -22,6 +22,7 @@ local vmode = ]] .. tostring(verticalMode) .. [[
 
 local vmode_side = "]] .. verticalModeBottomSide .. [["
 if items == nil or data[1] then items = {} end
+if page == nil or data[1] then page = 1 end
 local images = {}
 
 if data[5] ~= nil then
@@ -77,6 +78,10 @@ setDefaultFillColor(storageBar,Shape_Text,110/255,166/255,181/255,1)
 setDefaultFillColor(storageBar,Shape_Box,0.075,0.125,0.156,1)
 setDefaultFillColor(storageBar,Shape_Line,1,1,1,1)
 
+local buttonHover = createLayer()
+setDefaultFillColor(buttonHover,Shape_Box,249/255,212/255,123/255,1)
+setDefaultFillColor(buttonHover,Shape_Text,0,0,0,1)
+
 local colorLayer = createLayer()
 local imagesLayer = createLayer()
 
@@ -99,6 +104,8 @@ if vmode then
     setLayerRotation(colorLayer, math.rad(r))
     setLayerTranslation(imagesLayer, tx, ty)
     setLayerRotation(imagesLayer, math.rad(r))
+    setLayerTranslation(buttonHover, tx, ty)
+    setLayerRotation(buttonHover, math.rad(r))
 end
 local percent_fill = 0
 local r = 110/255
@@ -171,16 +178,44 @@ start_h = 100
 
 
 local h = font_size + font_size / 2
+local byPage = math.floor((ry-250)/h)
 for i,item in ipairs(items) do
     renderResistanceBar(item[2], item[3], item[4], from_side, start_h, rx-from_side*2, h, i==1, i<=16)
     start_h = start_h+h+5
-    if start_h >= ry-100 then
-        setNextTextAlign(storageBar, AlignH_Center, AlignV_Middle)
-        addText(storageBar, itemName, 'too many items, scroll will be added soon', rx/2, ry-75)
+    if i >= byPage then
+        --setNextTextAlign(storageBar, AlignH_Center, AlignV_Middle)
+        --addText(storageBar, itemName, 'too many items, scroll will be added soon', rx/2, ry-75)
         break
     end
 end
-
+if #items > byPage then
+    local max_pages = math.ceil(#items/byPage)
+    local end_index = page * byPage
+    local start_index = end_index - byPage + 1
+    setNextTextAlign(storageBar, AlignH_Center, AlignV_Middle)
+    addText(storageBar, itemName, 'page ' .. page .. '/' .. max_pages .." (from " .. start_index .. " to " .. end_index .. " on " .. #items .. ")" , rx/2, ry-75)
+    local cx, cy = getCursor()
+    if vmode then
+        cy, cx = getCursor()
+        if vmode_side == "right" then
+            cy = ry - cy
+            cx = rx - cx
+        end
+    end
+    logMessage(cx .. ' / ' .. cy)
+    --if page > 1 then
+        local b1_layer = storageBar
+        if cx >= from_side and cx <= (from_side+font_size) and cy >= (ry-85) and cy <= (ry-85+font_size) then
+            b1_layer = buttonHover
+        end
+        addBox(b1_layer, from_side, ry-85, font_size, font_size)
+        addText(b1_layer, itemName, '<' , from_side+font_size/4, ry-70)
+    --end
+    --if page < max_pages then
+        addBox(storageBar, rx-from_side-font_size, ry-85, font_size, font_size)
+        addText(storageBar, itemName, '>' , rx-from_side-font_size+font_size/4, ry-70)
+    --end
+end
 renderProgressBar(percent_fill)
 requestAnimationFrame(100)
 ]]
@@ -259,6 +294,7 @@ MyCoroutines = {
                 update_screen = false
                 screen_data[1] = false
             end
+            unit.exit()
         else
             for _,s in pairs(screens) do
                 s.setScriptInput(json.encode(screen_data))
