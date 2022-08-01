@@ -9,7 +9,7 @@ verticalModeBottomSide = "right" --export: when vertical mode is enabled, on whi
 	INIT
 ]]
 
-local version = '1.6.1'
+local version = '1.6.2'
 
 system.print("------------------------------------")
 system.print("DU-Container-Monitoring version " .. version)
@@ -29,13 +29,6 @@ if data[5] ~= nil then
     items[data[5][1] ] = data[5]
     setOutput(data[5][1])
     data[5] = nil
-end
-local loadedImages = 0
-for _,item in ipairs(items) do
-    if images[item[2] ] == nil and loadedImages <= 15 then
-        loadedImages = loadedImages + 1
-        images[item[2] ] = loadImage(item[5])
-    end
 end
 
 local rx,ry
@@ -185,6 +178,14 @@ local start_index = end_index - byPage + 1
 local item_to_display = {}
 for index = start_index, end_index do
     table.insert(item_to_display, items[index])
+end
+
+local loadedImages = 0
+for _,item in ipairs(item_to_display) do
+    if images[item[2] ] == nil and loadedImages <= 15 then
+        loadedImages = loadedImages + 1
+        images[item[2] ] = loadImage(item[5])
+    end
 end
 
 for i,item in ipairs(item_to_display) do
