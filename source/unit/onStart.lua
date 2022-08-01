@@ -9,7 +9,7 @@ verticalModeBottomSide = "right" --export: when vertical mode is enabled, on whi
 	INIT
 ]]
 
-local version = '1.7.0'
+local version = '1.7.1'
 
 system.print("------------------------------------")
 system.print("DU-Container-Monitoring version " .. version)
@@ -235,19 +235,6 @@ elseif sorting == 2 then table.sort(sorted_items, function(a, b) return a[3] > b
 elseif sorting == 3 then table.sort(sorted_items, function(a, b) return a[4] < b[4] end)
 elseif sorting == 4 then table.sort(sorted_items, function(a, b) return a[4] > b[4] end)
 end
---if sorting > 0 then
---    table.sort(sorted_items, function(a, b)
---        if sorting == 1 then
---            return a[3]:lower() < b[3]:lower()
---        elseif soting == 2 then
---            return a[3]:lower() > b[3]:lower()
---        elseif soting == 3 then
---            return tonumber(a[4]) < tonumber(b[4])
---        elseif soting == 4 then
---            return tonumber(a[4]) > tonumber(b[4])
---        end
---    end)
---end
 
 local item_to_display = {}
 for index = start_index, end_index do
