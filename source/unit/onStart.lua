@@ -9,7 +9,7 @@ verticalModeBottomSide = "right" --export: when vertical mode is enabled, on whi
 	INIT
 ]]
 
-local version = '1.6.0'
+local version = '1.6.1'
 
 system.print("------------------------------------")
 system.print("DU-Container-Monitoring version " .. version)
@@ -176,45 +176,62 @@ renderFooter()
 
 start_h = 100
 
-
 local h = font_size + font_size / 2
-local byPage = math.floor((ry-250)/h)
-for i,item in ipairs(items) do
+local byPage = math.floor((ry-180)/(h+5))
+local max_pages = math.ceil(#items/byPage)
+local end_index = page * byPage
+local start_index = end_index - byPage + 1
+
+local item_to_display = {}
+for index = start_index, end_index do
+    table.insert(item_to_display, items[index])
+end
+
+for i,item in ipairs(item_to_display) do
     renderResistanceBar(item[2], item[3], item[4], from_side, start_h, rx-from_side*2, h, i==1, i<=16)
     start_h = start_h+h+5
     if i >= byPage then
-        --setNextTextAlign(storageBar, AlignH_Center, AlignV_Middle)
-        --addText(storageBar, itemName, 'too many items, scroll will be added soon', rx/2, ry-75)
         break
     end
 end
 if #items > byPage then
-    local max_pages = math.ceil(#items/byPage)
-    local end_index = page * byPage
-    local start_index = end_index - byPage + 1
     setNextTextAlign(storageBar, AlignH_Center, AlignV_Middle)
-    addText(storageBar, itemName, 'page ' .. page .. '/' .. max_pages .." (from " .. start_index .. " to " .. end_index .. " on " .. #items .. ")" , rx/2, ry-75)
+    local paginationText = 'page ' .. page .. '/' .. max_pages
+    if rx > ry then
+        paginationText = paginationText .. " (from " .. start_index .. " to " .. end_index .. " on " .. #items .. ")"
+    end
+    addText(storageBar, itemName, paginationText , rx/2, ry-70)
     local cx, cy = getCursor()
     if vmode then
         cy, cx = getCursor()
+        cx = rx - cx
         if vmode_side == "right" then
             cy = ry - cy
             cx = rx - cx
         end
     end
-    logMessage(cx .. ' / ' .. cy)
-    --if page > 1 then
+    if page > 1 then
         local b1_layer = storageBar
-        if cx >= from_side and cx <= (from_side+font_size) and cy >= (ry-85) and cy <= (ry-85+font_size) then
+        if cx >= from_side and cx <= (from_side+h) and cy >= (ry-85) and cy <= (ry-85+h) then
+            if getCursorPressed() then
+                page = page - 1
+            end
             b1_layer = buttonHover
         end
-        addBox(b1_layer, from_side, ry-85, font_size, font_size)
-        addText(b1_layer, itemName, '<' , from_side+font_size/4, ry-70)
-    --end
-    --if page < max_pages then
-        addBox(storageBar, rx-from_side-font_size, ry-85, font_size, font_size)
-        addText(storageBar, itemName, '>' , rx-from_side-font_size+font_size/4, ry-70)
-    --end
+        addBox(b1_layer, from_side, ry-85, h, h)
+        addText(b1_layer, itemName, '<' , from_side+h/4, ry-65)
+    end
+    if page < max_pages then
+        local b2_layer = storageBar
+        if cx >= (rx-from_side-h) and cx <= (rx-from_side) and cy >= (ry-85) and cy <= (ry-85+h) then
+            if getCursorPressed() then
+                page = page + 1
+            end
+            b2_layer = buttonHover
+        end
+        addBox(b2_layer, rx-from_side-h, ry-85, h, h)
+        addText(b2_layer, itemName, '>' , rx-from_side-h+h/4, ry-65)
+    end
 end
 renderProgressBar(percent_fill)
 requestAnimationFrame(100)
