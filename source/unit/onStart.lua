@@ -10,7 +10,7 @@ defaultSorting = "none" --export: the default sorting of items on the screen: "n
 	INIT
 ]]
 
-local version = '1.7.2'
+local version = '1.7.3'
 
 system.print("------------------------------------")
 system.print("DU-Container-Monitoring version " .. version)

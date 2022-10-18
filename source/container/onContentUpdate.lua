@@ -5,7 +5,7 @@ for k, v in ipairs(list) do
     local item = system.getItem(v.id)
     local item_data = {
         v.id,
-        item.displayNameWithSize,
+        item.locDisplayNameWithSize,
         quantity
     }
     table.insert(screen_data[4], item_data)
