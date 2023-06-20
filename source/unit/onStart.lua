@@ -3,14 +3,14 @@
 ]]
 fontSize = 20 --export: the size of the text for all the screen
 maxVolumeForHub = 0 --export: the max volume from a hub (can't get it from the lua) if 0, the content volume will be displayed on the screen
-verticalMode = false --export: rotate the screen 90deg
+verticalMode = true --export: rotate the screen 90deg
 verticalModeBottomSide = "right" --export: when vertical mode is enabled, on which side the bottom of the screen is positioned ("left" or "right")
 defaultSorting = "none" --export: the default sorting of items on the screen: "none": like in the container, "items-asc": ascending sorting on the name, "items-desc": descending sorting on the name, "quantity-asc": ascending on the quantity, "quantity-desc": descending on the quantity
 --[[
 	INIT
 ]]
 
-local version = '1.8.0'
+local version = '1.9.0'
 
 system.print("------------------------------------")
 system.print("DU-Container-Monitoring version " .. version)
@@ -26,13 +26,13 @@ end
 function getRenderScript(data, global)
     local rs = [[
         local vmode = ]] .. tostring(verticalMode) .. [[
-
+        
         local vmode_side = "]] .. verticalModeBottomSide .. [["
         if sorting == nil then sorting = ]] .. sorting .. [[ end
         if page == nil then page = 1 end
     ]]
     if data == nil then
-        rs = rs .. [[local json = require('dkjson')
+        rs = rs .. [[local json = require('json')
         local data = json.decode(getInput()) or {}
         if items == nil then items = {} end
         if data[5] ~= nil then
@@ -43,13 +43,13 @@ function getRenderScript(data, global)
     ]]
     else
         rs = rs .. 'items=' .. data .. [[
-
+        
         local data = {]] .. tostring(global[1]) .. ',' .. tostring(global[2]) .. ',' .. tostring(global[3]) .. ',' .. tostring(global[4]) .. [[}
-
+        
         ]]
     end
     rs = rs .. [[local images = {}
-
+        
         local rx,ry = getResolution()
         local cx, cy = getCursor()
         if vmode then
@@ -61,45 +61,45 @@ function getRenderScript(data, global)
                 cx = rx - cx
             end
         end
-
+        
         local back=createLayer()
         local front=createLayer()
-
+        
         font_size = ]] .. fontSize .. [[
-
+        
         local small=loadFont('Play',14)
         local smallBold=loadFont('Play-Bold',18)
         local itemName=loadFont('Play-Bold',font_size)
         local big=loadFont('Play',38)
-
+        
         setBackgroundColor( 15/255,24/255,29/255)
-
+        
         setDefaultStrokeColor( back,Shape_Line,0,0,0,0.5)
         setDefaultShadow( back,Shape_Line,6,0,0,0,0.5)
-
+        
         setDefaultFillColor( front,Shape_BoxRounded,249/255,212/255,123/255,1)
         setDefaultFillColor( front,Shape_Text,0,0,0,1)
         setDefaultFillColor( front,Shape_Box,0.075,0.125,0.156,1)
         setDefaultFillColor( front,Shape_Text,0.710,0.878,0.941,1)
-
+        
         function format_number(a)local b=a;while true do b,k=string.gsub(b,"^(-?%d+)(%d%d%d)",'%1 %2')if k==0 then break end end;local c=string.sub(b,-2)if c=='.0'then b=string.sub(b,1,b:len()-2)end;return b end
-
+        
         function round(a,b)if b then return utils.round(a/b)*b end;return a>=0 and math.floor(a+0.5)or math.ceil(a-0.5)end
-
+        
         function getRGBGradient(a,b,c,d,e,f,g,h,i,j)a=-1*math.cos(a*math.pi)/2+0.5;local k=0;local l=0;local m=0;if a>=.5 then a=(a-0.5)*2;k=e-a*(e-h)l=f-a*(f-i)m=g-a*(g-j)else a=a*2;k=b-a*(b-e)l=c-a*(c-f)m=d-a*(d-g)end;return k,l,m end
-
+        
         local storageBar = createLayer()
         setDefaultFillColor(storageBar,Shape_Text,110/255,166/255,181/255,1)
         setDefaultFillColor(storageBar,Shape_Box,0.075,0.125,0.156,1)
         setDefaultFillColor(storageBar,Shape_Line,1,1,1,1)
-
+        
         local buttonHover = createLayer()
         setDefaultFillColor(buttonHover,Shape_Box,249/255,212/255,123/255,1)
         setDefaultFillColor(buttonHover,Shape_Text,0,0,0,1)
-
+        
         local colorLayer = createLayer()
         local imagesLayer = createLayer()
-
+        
         if vmode then
             local r = 90
             local tx = ry
@@ -134,7 +134,7 @@ function getRenderScript(data, global)
         setDefaultFillColor(colorLayer,Shape_Box,r,g,b,1)
         setDefaultFillColor(colorLayer,Shape_Text,r,g,b,1)
         setDefaultTextAlign(colorLayer, AlignH_Center, AlignV_Middle)
-
+        
         local from_side = rx*0.05
         function renderHeader(title)
             local h = 35
@@ -191,7 +191,7 @@ function getRenderScript(data, global)
                 end
                 addBox(title1_layer, x-5, y-20, title1_width, 20)
                 addText(title1_layer, small, title1_text, x, y-5)
-
+        
                 local title2_text = 'QUANTITY'
                 local title2_layer = storageBar
                 local title2_width = 75
@@ -220,44 +220,44 @@ function getRenderScript(data, global)
             if iconPath and images[iconPath] then
                 addImage(imagesLayer, images[iconPath], x+10, y+font_size*.1, font_size*1.3, font_size*1.2)
             end
-
+        
             local pos_y = y+(h/2)-2
-
+        
             setNextTextAlign(storageBar, AlignH_Left, AlignV_Middle)
             addText(storageBar, itemName, title, x+20+font_size, pos_y)
-
+            
             setNextTextAlign(storageBar, AlignH_Right, AlignV_Middle)
             addText(storageBar, itemName, format_number(quantity), rx-from_side-10, pos_y)
         end
-
+        
         renderHeader('Container Monitoring v]] .. version .. [[')
-
+        
         renderFooter()
-
+        
         start_h = 100
-
+        
         local h = font_size + font_size / 2
         local byPage = math.floor((ry-180)/(h+5))
         local max_pages = math.ceil(#items/byPage)
         local end_index = page * byPage
         local start_index = end_index - byPage + 1
-
+        
         local sorted_items = {}
         for i,v in pairs(items) do
             table.insert(sorted_items, v)
         end
-
+        
         if sorting == 1 then table.sort(sorted_items, function(a, b) return a[3] < b[3] end)
         elseif sorting == 2 then table.sort(sorted_items, function(a, b) return a[3] > b[3] end)
         elseif sorting == 3 then table.sort(sorted_items, function(a, b) return a[4] < b[4] end)
         elseif sorting == 4 then table.sort(sorted_items, function(a, b) return a[4] > b[4] end)
         end
-
+        
         local item_to_display = {}
         for index = start_index, end_index do
             table.insert(item_to_display, sorted_items[index])
         end
-
+        
         local loadedImages = 0
         for _,item in ipairs(item_to_display) do
             if images[item[5] ] == nil and loadedImages <= 15 then
@@ -265,7 +265,7 @@ function getRenderScript(data, global)
                 images[item[5] ] = loadImage(item[5])
             end
         end
-
+        
         for i,item in ipairs(item_to_display) do
             renderResistanceBar(item[2], item[3], item[4], item[5], from_side, start_h, rx-from_side*2, h, i==1, i<=16)
             start_h = start_h+h+5
@@ -396,7 +396,7 @@ MyCoroutines = {
             if fullRS:len() < 50000 then --if all can stay on screen then
                 for _,s in pairs(screens) do
                     s.setRenderScript(fullRS)
-                end
+                end 
             end
             unit.exit()
             coroutine.yield(coroutinesTable[1])
