@@ -12,9 +12,9 @@
 
 [![img](https://du-lua.dev/img/open_in_editor_button.png)](https://du-lua.dev/#/editor/github/Jericho1060/du-container-monitoring)
 
-# Guilded Server (better than Discord)
+# Discord Server
 
-You can join me on Guilded for help or suggestions or requests by following that link : https://guilded.jericho.dev
+You can join me on Discord for help or suggestions or requests by following that link : https://discord.gg/qkdjyqDZQZ
 
 # Installation
 
